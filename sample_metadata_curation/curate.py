@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from sample_metadata_curation.biome import BiomeCurator
+from sample_metadata_curation.date import DateCurator
 from sample_metadata_curation.location import LocationCurator
 from sample_metadata_curation.sample_parser import (
     load_json,
@@ -19,6 +20,8 @@ class SampleCurator:
         resources_dir: Optional[Path] = None,
         biome_keys: Optional[List[str]] = None,
         natural_earth_zip: Optional[Path] = None,
+        curate_dates: bool = False,
+        min_date_resolution: Optional[str] = None,
     ):
         if resources_dir is None:
             resources_dir = Path(__file__).parent / "resources"
@@ -27,6 +30,9 @@ class SampleCurator:
             resources_dir=resources_dir, natural_earth_zip=natural_earth_zip
         )
         self.biome_curator = BiomeCurator(biome_keys=biome_keys)
+        self.date_curator = (
+            DateCurator(min_resolution=min_date_resolution) if curate_dates else None
+        )
 
     def curate_sample(self, sample_json: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -57,6 +63,11 @@ class SampleCurator:
         biome_result = self.biome_curator.curate_biome(cleaned_dict)
         result.update(biome_result)
 
+        # Date extraction (if enabled)
+        if self.date_curator:
+            date_result = self.date_curator.curate_date(cleaned_dict)
+            result.update(date_result)
+
         return result
 
 
@@ -64,6 +75,8 @@ def curate_biosample(
     input_data: Any,
     biome_keys: Optional[List[str]] = None,
     natural_earth_zip: Optional[Path] = None,
+    curate_dates: bool = False,
+    min_date_resolution: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Curate one biosample
@@ -77,7 +90,12 @@ def curate_biosample(
     if not sample_json:
         return {}
 
-    curator = SampleCurator(biome_keys=biome_keys, natural_earth_zip=natural_earth_zip)
+    curator = SampleCurator(
+        biome_keys=biome_keys,
+        natural_earth_zip=natural_earth_zip,
+        curate_dates=curate_dates,
+        min_date_resolution=min_date_resolution,
+    )
     return curator.curate_sample(sample_json)
 
 

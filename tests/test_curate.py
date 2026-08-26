@@ -4,6 +4,7 @@ import pytest
 from shapely.geometry import Polygon
 
 from sample_metadata_curation.curate import SampleCurator, curate_biosample
+from sample_metadata_curation.date import DateCurator
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "test.json"
 
@@ -361,3 +362,47 @@ def test_institution_coordinates():
     result = curate_biosample(make_sample(56.1567, 10.2107, "Denmark"))
     assert result["geo_check_status"] == "WARN"
     assert result["geo_check_reason"] == "known_institution"
+
+
+# ------- Date parsing ---------------
+
+
+@pytest.fixture
+def date_curator():
+    return DateCurator(min_resolution="month")
+
+
+@pytest.mark.parametrize(
+    "date_str, expected_status, expected_reason, expected_resolution",
+    [
+        # Valid formats
+        ("2019-06-15", "PASS", "sufficient_resolution", "day"),
+        ("2019-06", "PASS", "sufficient_resolution", "month"),
+        ("2019", "FAIL", "insufficient_resolution", "year"),
+        ("15-Jun-2019", "PASS", "sufficient_resolution", "day"),
+        ("Jun-2019", "PASS", "sufficient_resolution", "month"),
+        ("2019-06-15T14:30Z", "PASS", "sufficient_resolution", "day"),
+        # Date ranges — take start date
+        ("2019-07-27/2019-08-01", "PASS", "date_range", "date_range"),
+        ("2017-06/2019-08", "FAIL", "date_range_too_broad", "date_range"),
+        # Ambiguous
+        ("03/02/2019", "FAIL", "ambiguous_date_format", None),
+        ("3/2/19", "FAIL", "ambiguous_date_format", None),
+        ("10/1/19", "FAIL", "ambiguous_date_format", None),
+        # Unambiguous because one component > 12
+        ("15/02/2019", "PASS", "sufficient_resolution", "day"),
+        # Missing
+        ("not provided", "SKIP", "no_date_found", None),
+        ("NA", "SKIP", "no_date_found", None),
+        # Unparseable
+        ("last summer", "FAIL", "unparseable_date", None),
+    ],
+)
+def test_date_parsing(
+    date_str, expected_status, expected_reason, expected_resolution, date_curator
+):
+    cleaned = {"collection_date": date_str}
+    result = date_curator.curate_date(cleaned)
+    assert result["date_check_status"] == expected_status
+    assert result["date_check_reason"] == expected_reason
+    assert result["date_resolution"] == expected_resolution
