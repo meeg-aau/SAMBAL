@@ -50,7 +50,7 @@ def _rows(*rows):
 
 def test_parse_natural_earth_country_codes_maps_name_variants(make_ne_zip):
     zip_path = make_ne_zip(_rows(DENMARK_ROW))
-    mapping = parse_natural_earth_country_codes(zip_path.read_bytes())
+    mapping = parse_natural_earth_country_codes(zip_path)
     assert mapping["Denmark"] == "DK"
     assert mapping["Kingdom of Denmark"] == "DK"
 
@@ -58,13 +58,13 @@ def test_parse_natural_earth_country_codes_maps_name_variants(make_ne_zip):
 def test_parse_natural_earth_country_codes_skips_disputed_placeholder(make_ne_zip):
     # Natural Earth uses ISO_A2_EH "-99" for disputed/unrecognised territories
     zip_path = make_ne_zip(_rows(SOMALILAND_ROW))
-    mapping = parse_natural_earth_country_codes(zip_path.read_bytes())
+    mapping = parse_natural_earth_country_codes(zip_path)
     assert "Somaliland" not in mapping
 
 
 def test_parse_natural_earth_country_codes_first_name_variant_wins(make_ne_zip):
     zip_path = make_ne_zip(_rows(DENMARK_ROW, SOMALILAND_ROW))
-    mapping = parse_natural_earth_country_codes(zip_path.read_bytes())
+    mapping = parse_natural_earth_country_codes(zip_path)
     assert mapping["Denmark"] == "DK"
     assert "Somaliland" not in mapping
 
@@ -285,7 +285,7 @@ def test_get_ror_download_url_picks_the_zip_file():
 # ── get_checklist_countries ──────────────────────────────────────────────
 
 
-def test_get_checklist_countries_returns_all_four_payloads():
+def test_get_checklist_countries_returns_all_payloads():
     fake_ena = MagicMock(text="<xml/>")
     fake_cc = MagicMock(content=b"cc-bytes")
     fake_ror = MagicMock(content=b"ror-bytes")
@@ -301,12 +301,36 @@ def test_get_checklist_countries_returns_all_four_payloads():
             return_value="https://example.org/ror-data.zip",
         ),
     ):
-        ena_xml, cc_bytes, ror_bytes, ne_bytes = get_checklist_countries()
+        ena_xml, cc_bytes, ror_bytes, ne_bytes, ror_url = get_checklist_countries()
 
     assert ena_xml == "<xml/>"
     assert cc_bytes == b"cc-bytes"
     assert ror_bytes == b"ror-bytes"
     assert ne_bytes == b"ne-bytes"
+    assert ror_url == "https://example.org/ror-data.zip"
+
+
+def test_get_checklist_countries_skips_natural_earth_download():
+    fake_ena = MagicMock(text="<xml/>")
+    fake_cc = MagicMock(content=b"cc-bytes")
+    fake_ror = MagicMock(content=b"ror-bytes")
+
+    with (
+        patch(
+            "sample_metadata_curation.install_resources.requests.get",
+            side_effect=[fake_ena, fake_cc, fake_ror],
+        ) as mock_get,
+        patch(
+            "sample_metadata_curation.install_resources.get_ror_download_url",
+            return_value="https://example.org/ror-data.zip",
+        ),
+    ):
+        ena_xml, cc_bytes, ror_bytes, ne_bytes, ror_url = get_checklist_countries(
+            download_natural_earth=False
+        )
+
+    assert ne_bytes is None
+    assert mock_get.call_count == 3
 
 
 def test_get_checklist_countries_reraises_on_failure():
@@ -350,11 +374,16 @@ def test_main_writes_expected_output_files(tmp_path, make_ne_zip):
                 b"fake-rda-bytes",
                 _make_ror_zip(ror_df),
                 ne_zip_path.read_bytes(),
+                "https://example.org/ror-data.zip",
             ),
         ),
         patch(
             "sample_metadata_curation.install_resources.parse_coordinate_cleaner_ref",
             return_value=fake_centroids_df,
+        ),
+        patch(
+            "sample_metadata_curation.install_resources.coordinate_cleaner_commit",
+            return_value=None,
         ),
     ):
         main(resource_dir=tmp_path)

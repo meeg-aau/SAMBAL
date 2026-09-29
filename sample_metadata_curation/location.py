@@ -32,7 +32,7 @@ LATLON_COORD_RE = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-# In case coordinates are given in degrees-minutes-seconds format
+# For coordinates are given in degrees-minutes-seconds format
 """
 match = 55° 37' 17.94" N 8° 17' 5.64" E
 lat_deg = 55, lat_min = 37, lat_sec = 17.94, lat_dir = N
@@ -72,7 +72,8 @@ class LocationCurator:
         self.centroids_and_capitals_csv = (
             resources_dir / "country_centroids_and_capitals.csv"
         )
-        #   provide a preferred path for the file. For cartogenomics to sync the same versions
+        #   provide a preferred path for the file
+        #   for cartogenomics to sync the same versions
         self.natural_earth_zip = (
             Path(natural_earth_zip)
             if natural_earth_zip
