@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "requests", "pandas"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sample_metadata_curation"
+name = "SAMBAL"
 version = "0.1.0"
-description = "A package for curating BioSample metadata"
+description = "SAMBAL (SAmple Metadata for Biogeographic ALignment) - a package for curating BioSample metadata"
 readme = "README.md"
 requires-python = ">=3.7"
 dependencies = [
