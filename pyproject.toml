@@ -31,7 +31,7 @@ dev = [
 
 [project.scripts]
 curate-sample = "sample_metadata_curation.curate:main"
-setup-sample-resources = "sample_metadata_curation.install_resources:main"
+setup-sample-resources = "sample_metadata_curation.install_resources:cli"
 
 [tool.setuptools]
 packages = ["sample_metadata_curation", "sample_metadata_curation.resources"]

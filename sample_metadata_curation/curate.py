@@ -18,11 +18,14 @@ class SampleCurator:
         self,
         resources_dir: Optional[Path] = None,
         biome_keys: Optional[List[str]] = None,
+        natural_earth_zip: Optional[Path] = None,
     ):
         if resources_dir is None:
             resources_dir = Path(__file__).parent / "resources"
 
-        self.location_curator = LocationCurator(resources_dir=resources_dir)
+        self.location_curator = LocationCurator(
+            resources_dir=resources_dir, natural_earth_zip=natural_earth_zip
+        )
         self.biome_curator = BiomeCurator(biome_keys=biome_keys)
 
     def curate_sample(self, sample_json: Dict[str, Any]) -> Dict[str, Any]:
@@ -58,7 +61,9 @@ class SampleCurator:
 
 
 def curate_biosample(
-    input_data: Any, biome_keys: Optional[List[str]] = None
+    input_data: Any,
+    biome_keys: Optional[List[str]] = None,
+    natural_earth_zip: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """
     Curate one biosample
@@ -72,7 +77,7 @@ def curate_biosample(
     if not sample_json:
         return {}
 
-    curator = SampleCurator(biome_keys=biome_keys)
+    curator = SampleCurator(biome_keys=biome_keys, natural_earth_zip=natural_earth_zip)
     return curator.curate_sample(sample_json)
 
 

@@ -1,8 +1,9 @@
 from pathlib import Path
 
 import pytest
+from shapely.geometry import Polygon
 
-from sample_metadata_curation.curate import curate_biosample
+from sample_metadata_curation.curate import SampleCurator, curate_biosample
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "test.json"
 
@@ -180,6 +181,35 @@ def test_coordinate_region_match(
     assert result["locality"] == expected_locality
     assert result["geo_check_status"] == expected_geo_match
     assert result["geo_check_reason"] == expected_geo_match_reason
+
+
+def test_curate_biosample_accepts_natural_earth_zip_override(tmp_path, make_ne_zip):
+    """
+    natural_earth_zip lets an external caller (cartogenomics) supply a
+    fresher Natural Earth download than whatever this package last bundled,
+    independently of resources_dir (which still supplies the other 3 files).
+    """
+    resources_dir = tmp_path / "resources"
+    resources_dir.mkdir()
+    (resources_dir / "country_to_cc_mapping.csv").write_text("Denmark,Denmark,DK\n")
+    (resources_dir / "oceans_and_seas.txt").write_text("")
+    (resources_dir / "country_centroids_and_capitals.csv").write_text(
+        "iso2,centroid.lon,centroid.lat,capital.lon,capital.lat\n"
+    )
+    override_zip = make_ne_zip(
+        {
+            "ISO_A2_EH": ["DK"],
+            "NAME": ["Denmark"],
+            "geometry": [Polygon([(8, 54), (8, 58), (13, 58), (13, 54)])],
+        }
+    )
+
+    curator = SampleCurator(resources_dir=resources_dir, natural_earth_zip=override_zip)
+    assert curator.location_curator.natural_earth_zip == override_zip
+
+    result = curator.curate_sample(make_sample(55.62115, 8.2849, "Denmark"))
+    assert result["geo_check_status"] == "PASS"
+    assert result["geo_check_reason"] == "match"
 
 
 def test_biome_extraction():
