@@ -1,4 +1,6 @@
-# BioSample Metadata Curation
+# SAMBAL
+
+**SA**mple **M**etadata for **B**iogeographic **AL**ignment
 
 A Python package for curating and cleaning BioSample metadata, specifically focusing on location and coordinate (latitude/longitude) normalization.
 
