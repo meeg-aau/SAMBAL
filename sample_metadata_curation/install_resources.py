@@ -386,7 +386,7 @@ def main(
 
     manifest = {
         "tool": {
-            "name": "sample_metadata_curation",
+            "name": "SAMBAL",
             "version": get_tool_version(),
         },
         "generated_at": generated_at,
