@@ -244,7 +244,7 @@ def get_tool_version() -> str:
     straight from a source checkout without an editable install).
     """
     try:
-        return pkg_version("sample_metadata_curation")
+        return pkg_version("SAMBAL")
     except PackageNotFoundError:
         return "unknown"
 
